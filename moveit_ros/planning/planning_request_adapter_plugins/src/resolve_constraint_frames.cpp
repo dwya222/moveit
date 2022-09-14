@@ -35,6 +35,7 @@
 /* Author: Robert Haschke */
 
 #include <moveit/planning_request_adapter/planning_request_adapter.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit/kinematic_constraints/utils.h>
 #include <class_loader/class_loader.hpp>
 #include <ros/ros.h>
@@ -67,6 +68,18 @@ public:
     for (moveit_msgs::Constraints& constraint : modified.goal_constraints)
       kinematic_constraints::resolveConstraintFrames(planning_scene->getCurrentState(), constraint);
     return planner(planning_scene, modified, res);
+  }
+
+  bool adaptAndPlan(const PlannerFnMon& planner, boost::any planning_scene_monitor,
+                    const planning_interface::MotionPlanRequest& req, planning_interface::MotionPlanResponse& res,
+                    std::vector<std::size_t>& /*added_path_index*/) const override
+  {
+    ROS_INFO("Running '%s'", getDescription().c_str());
+    planning_interface::MotionPlanRequest modified = req;
+    kinematic_constraints::resolveConstraintFrames(boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->getCurrentState(), modified.path_constraints);
+    for (moveit_msgs::Constraints& constraint : modified.goal_constraints)
+      kinematic_constraints::resolveConstraintFrames(boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->getCurrentState(), constraint);
+    return planner(planning_scene_monitor, modified, res);
   }
 };
 

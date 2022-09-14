@@ -40,6 +40,7 @@
 #include <moveit/constraint_samplers/constraint_sampler_manager.h>
 #include <moveit/constraint_sampler_manager_loader/constraint_sampler_manager_loader.h>
 #include <moveit/planning_interface/planning_interface.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit_msgs/MotionPlanRequest.h>
 #include <moveit_msgs/MotionPlanResponse.h>
 #include <string>
@@ -81,7 +82,12 @@ public:
 
   ModelBasedPlanningContextPtr getPlanningContext(const planning_scene::PlanningSceneConstPtr& planning_scene,
                                                   const planning_interface::MotionPlanRequest& req) const;
+  ModelBasedPlanningContextPtr getPlanningContext(const planning_scene_monitor::PlanningSceneMonitorPtr& planning_scene_monitor,
+                                                  const planning_interface::MotionPlanRequest& req) const;
   ModelBasedPlanningContextPtr getPlanningContext(const planning_scene::PlanningSceneConstPtr& planning_scene,
+                                                  const planning_interface::MotionPlanRequest& req,
+                                                  moveit_msgs::MoveItErrorCodes& error_code) const;
+  ModelBasedPlanningContextPtr getPlanningContext(const planning_scene_monitor::PlanningSceneMonitorPtr& planning_scene_monitor,
                                                   const planning_interface::MotionPlanRequest& req,
                                                   moveit_msgs::MoveItErrorCodes& error_code) const;
 

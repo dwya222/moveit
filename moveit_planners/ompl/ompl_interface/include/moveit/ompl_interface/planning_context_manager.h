@@ -38,6 +38,7 @@
 
 #include <moveit/ompl_interface/model_based_planning_context.h>
 #include <moveit/ompl_interface/parameterization/model_based_state_space_factory.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit/constraint_samplers/constraint_sampler_manager.h>
 #include <moveit/macros/class_forward.h>
 
@@ -179,6 +180,11 @@ public:
    *
    * */
   ModelBasedPlanningContextPtr getPlanningContext(const planning_scene::PlanningSceneConstPtr& planning_scene,
+                                                  const planning_interface::MotionPlanRequest& req,
+                                                  moveit_msgs::MoveItErrorCodes& error_code, const ros::NodeHandle& nh,
+                                                  bool use_constraints_approximations) const;
+
+  ModelBasedPlanningContextPtr getPlanningContext(const planning_scene_monitor::PlanningSceneMonitorPtr& planning_scene_monitor,
                                                   const planning_interface::MotionPlanRequest& req,
                                                   moveit_msgs::MoveItErrorCodes& error_code, const ros::NodeHandle& nh,
                                                   bool use_constraints_approximations) const;

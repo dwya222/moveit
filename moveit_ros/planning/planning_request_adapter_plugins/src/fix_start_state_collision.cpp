@@ -35,6 +35,7 @@
 /* Author: Ioan Sucan */
 
 #include <moveit/planning_request_adapter/planning_request_adapter.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit/robot_state/conversions.h>
 #include <moveit/trajectory_processing/trajectory_tools.h>
 #include <class_loader/class_loader.hpp>
@@ -182,6 +183,99 @@ public:
       else
         ROS_DEBUG_STREAM("Start state is valid with respect to group " << creq.group_name);
       return planner(planning_scene, req, res);
+    }
+  }
+
+  bool adaptAndPlan(const PlannerFnMon& planner, boost::any planning_scene_monitor,
+                    const planning_interface::MotionPlanRequest& req, planning_interface::MotionPlanResponse& res,
+                    std::vector<std::size_t>& added_path_index) const override
+  {
+    ROS_DEBUG("Running '%s'", getDescription().c_str());
+
+    // get the specified start state
+    moveit::core::RobotState start_state = boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->getCurrentState();
+    moveit::core::robotStateMsgToRobotState(boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->getTransforms(), req.start_state, start_state);
+
+    collision_detection::CollisionRequest creq;
+    creq.group_name = req.group_name;
+    collision_detection::CollisionResult cres;
+    boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->checkCollision(creq, cres, start_state);
+    if (cres.collision)
+    {
+      // Rerun in verbose mode
+      collision_detection::CollisionRequest vcreq = creq;
+      collision_detection::CollisionResult vcres;
+      vcreq.verbose = true;
+      boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->checkCollision(vcreq, vcres, start_state);
+
+      if (creq.group_name.empty())
+        ROS_INFO("Start state appears to be in collision");
+      else
+        ROS_INFO_STREAM("Start state appears to be in collision with respect to group " << creq.group_name);
+
+      moveit::core::RobotStatePtr prefix_state(new moveit::core::RobotState(start_state));
+      random_numbers::RandomNumberGenerator& rng = prefix_state->getRandomNumberGenerator();
+
+      const std::vector<const moveit::core::JointModel*>& jmodels =
+          boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->getRobotModel()->hasJointModelGroup(req.group_name) ?
+              boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->getRobotModel()->getJointModelGroup(req.group_name)->getJointModels() :
+              boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->getRobotModel()->getJointModels();
+
+      bool found = false;
+      for (int c = 0; !found && c < sampling_attempts_; ++c)
+      {
+        for (std::size_t i = 0; !found && i < jmodels.size(); ++i)
+        {
+          std::vector<double> sampled_variable_values(jmodels[i]->getVariableCount());
+          const double* original_values = prefix_state->getJointPositions(jmodels[i]);
+          jmodels[i]->getVariableRandomPositionsNearBy(rng, &sampled_variable_values[0], original_values,
+                                                       jmodels[i]->getMaximumExtent() * jiggle_fraction_);
+          start_state.setJointPositions(jmodels[i], sampled_variable_values);
+          collision_detection::CollisionResult cres;
+          boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->checkCollision(creq, cres, start_state);
+          if (!cres.collision)
+          {
+            found = true;
+            ROS_INFO("Found a valid state near the start state at distance %lf after %d attempts",
+                     prefix_state->distance(start_state), c);
+          }
+        }
+      }
+
+      if (found)
+      {
+        planning_interface::MotionPlanRequest req2 = req;
+        moveit::core::robotStateToRobotStateMsg(start_state, req2.start_state);
+        bool solved = planner(planning_scene_monitor, req2, res);
+        if (solved && !res.trajectory_->empty())
+        {
+          // heuristically decide a duration offset for the trajectory (induced by the additional point added as a
+          // prefix to the computed trajectory)
+          res.trajectory_->setWayPointDurationFromPrevious(0, std::min(max_dt_offset_,
+                                                                       res.trajectory_->getAverageSegmentDuration()));
+          res.trajectory_->addPrefixWayPoint(prefix_state, 0.0);
+          // we add a prefix point, so we need to bump any previously added index positions
+          for (std::size_t& added_index : added_path_index)
+            added_index++;
+          added_path_index.push_back(0);
+        }
+        return solved;
+      }
+      else
+      {
+        ROS_WARN("Unable to find a valid state nearby the start state (using jiggle fraction of %lf and %u sampling "
+                 "attempts). Passing the original planning request to the planner.",
+                 jiggle_fraction_, sampling_attempts_);
+        return planner(planning_scene_monitor, req, res);
+      }
+    }
+    else
+    {
+      if (creq.group_name.empty())
+        ROS_DEBUG("Start state is valid");
+      else
+        ROS_DEBUG_STREAM("Start state is valid with respect to group " << creq.group_name);
+      return planner(planning_scene_monitor, req, res);
     }
   }
 

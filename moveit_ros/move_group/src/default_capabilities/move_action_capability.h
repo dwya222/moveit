@@ -41,6 +41,8 @@
 #include <moveit_msgs/MoveGroupAction.h>
 #include <memory>
 
+#define PLANNING_SCENE_MONITOR
+
 namespace move_group
 {
 class MoveGroupMoveAction : public MoveGroupCapability

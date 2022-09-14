@@ -40,6 +40,7 @@
 #include <moveit/ompl_interface/detail/constrained_valid_state_sampler.h>
 #include <moveit/constraint_samplers/constraint_sampler_manager.h>
 #include <moveit/planning_interface/planning_interface.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/tools/benchmark/Benchmark.h>
@@ -329,6 +330,8 @@ public:
    * */
   virtual void configure(const ros::NodeHandle& nh, bool use_constraints_approximations);
 
+  void setPlanningSceneMonitor(const planning_scene_monitor::PlanningSceneMonitorPtr& planning_scene_monitor);
+
 protected:
   void preSolve();
   void postSolve();
@@ -434,5 +437,7 @@ protected:
 
   // if false parallel plan returns the first solution found
   bool hybridize_;
+
+  planning_scene_monitor::PlanningSceneMonitorPtr planning_scene_monitor_;
 };
 }  // namespace ompl_interface

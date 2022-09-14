@@ -36,10 +36,12 @@
 /* Author: Ioan Sucan */
 
 #include <moveit/planning_request_adapter/planning_request_adapter.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit/robot_state/conversions.h>
 #include <class_loader/class_loader.hpp>
 #include <moveit/trajectory_processing/trajectory_tools.h>
 #include <ros/ros.h>
+#include <boost/any.hpp>
 
 namespace default_planner_request_adapters
 {
@@ -129,6 +131,79 @@ public:
     {
       ROS_DEBUG("Path constraints are OK. Running usual motion plan.");
       return planner(planning_scene, req, res);
+    }
+  }
+
+  bool adaptAndPlan(const PlannerFnMon& planner, boost::any planning_scene_monitor,
+                    const planning_interface::MotionPlanRequest& req, planning_interface::MotionPlanResponse& res,
+                    std::vector<std::size_t>& added_path_index) const override
+  {
+    ROS_DEBUG("Running '%s'", getDescription().c_str());
+
+    // get the specified start state
+    moveit::core::RobotState start_state = boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->getCurrentState();
+    moveit::core::robotStateMsgToRobotState(boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->getTransforms(), req.start_state, start_state);
+
+    // if the start state is otherwise valid but does not meet path constraints
+    if (boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->isStateValid(start_state, req.group_name) &&
+        !boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->isStateValid(start_state, req.path_constraints, req.group_name))
+    {
+      ROS_INFO("Path constraints not satisfied for start state...");
+      boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor)->getPlanningScene()->isStateValid(start_state, req.path_constraints, req.group_name, true);
+      ROS_INFO("Planning to path constraints...");
+
+      planning_interface::MotionPlanRequest req2 = req;
+      req2.goal_constraints.resize(1);
+      req2.goal_constraints[0] = req.path_constraints;
+      req2.path_constraints = moveit_msgs::Constraints();
+      planning_interface::MotionPlanResponse res2;
+      // we call the planner for this additional request, but we do not want to include potential
+      // index information from that call
+      std::vector<std::size_t> added_path_index_temp;
+      added_path_index_temp.swap(added_path_index);
+      bool solved1 = planner(planning_scene_monitor, req2, res2);
+      added_path_index_temp.swap(added_path_index);
+
+      if (solved1)
+      {
+        planning_interface::MotionPlanRequest req3 = req;
+        ROS_INFO("Planned to path constraints. Resuming original planning request.");
+
+        // extract the last state of the computed motion plan and set it as the new start state
+        moveit::core::robotStateToRobotStateMsg(res2.trajectory_->getLastWayPoint(), req3.start_state);
+        bool solved2 = planner(planning_scene_monitor, req3, res);
+        res.planning_time_ += res2.planning_time_;
+
+        if (solved2)
+        {
+          // since we add a prefix, we need to correct any existing index positions
+          for (std::size_t& added_index : added_path_index)
+            added_index += res2.trajectory_->getWayPointCount();
+
+          // we mark the fact we insert a prefix path (we specify the index position we just added)
+          for (std::size_t i = 0; i < res2.trajectory_->getWayPointCount(); ++i)
+            added_path_index.push_back(i);
+
+          // we need to append the solution paths.
+          res2.trajectory_->append(*res.trajectory_, 0.0);
+          res2.trajectory_->swap(*res.trajectory_);
+          return true;
+        }
+        else
+          return false;
+      }
+      else
+      {
+        ROS_WARN("Unable to plan to path constraints. Running usual motion plan.");
+        bool result = planner(planning_scene_monitor, req, res);
+        res.planning_time_ += res2.planning_time_;
+        return result;
+      }
+    }
+    else
+    {
+      ROS_DEBUG("Path constraints are OK. Running usual motion plan.");
+      return planner(planning_scene_monitor, req, res);
     }
   }
 };

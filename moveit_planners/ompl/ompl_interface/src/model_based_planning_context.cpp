@@ -203,6 +203,11 @@ ompl_interface::ModelBasedPlanningContext::getProjectionEvaluator(const std::str
   return ob::ProjectionEvaluatorPtr();
 }
 
+void ompl_interface::ModelBasedPlanningContext::setPlanningSceneMonitor(const planning_scene_monitor::PlanningSceneMonitorPtr& planning_scene_monitor)
+{
+  planning_scene_monitor_ = planning_scene_monitor;
+}
+
 ompl::base::StateSamplerPtr
 ompl_interface::ModelBasedPlanningContext::allocPathConstrainedSampler(const ompl::base::StateSpace* state_space) const
 {

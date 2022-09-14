@@ -214,6 +214,14 @@ bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene::Pla
   return generatePlan(planning_scene, req, res, dummy);
 }
 
+bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene_monitor::PlanningSceneMonitorPtr& planning_scene_monitor,
+                                                       const planning_interface::MotionPlanRequest& req,
+                                                       planning_interface::MotionPlanResponse& res) const
+{
+  std::vector<std::size_t> dummy;
+  return generatePlan(planning_scene_monitor, req, res, dummy);
+}
+
 bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene::PlanningSceneConstPtr& planning_scene,
                                                        const planning_interface::MotionPlanRequest& req,
                                                        planning_interface::MotionPlanResponse& res,
@@ -324,6 +332,165 @@ bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene::Pla
               {
                 visualization_msgs::MarkerArray arr_i;
                 collision_detection::getCollisionMarkersFromContacts(arr_i, planning_scene->getPlanningFrame(),
+                                                                     c_res.contacts);
+                arr.markers.insert(arr.markers.end(), arr_i.markers.begin(), arr_i.markers.end());
+              }
+            }
+            ROS_ERROR_STREAM("Completed listing of explanations for invalid states.");
+          }
+        }
+        else
+          ROS_DEBUG("Planned path was found to be valid, except for states that were added by planning request "
+                    "adapters, but that is ok.");
+      }
+      else
+        ROS_DEBUG("Planned path was found to be valid when rechecked");
+      contacts_publisher_.publish(arr);
+    }
+  }
+
+  // display solution path if needed
+  if (display_computed_motion_plans_ && solved)
+  {
+    moveit_msgs::DisplayTrajectory disp;
+    disp.model_id = robot_model_->getName();
+    disp.trajectory.resize(1);
+    res.trajectory_->getRobotTrajectoryMsg(disp.trajectory[0]);
+    moveit::core::robotStateToRobotStateMsg(res.trajectory_->getFirstWayPoint(), disp.trajectory_start);
+    display_path_publisher_.publish(disp);
+  }
+
+  if (!solved)
+  {
+    // This should alert the user if planning failed because of contradicting constraints.
+    // Could be checked more thoroughly, but it is probably not worth going to that length.
+    bool stacked_constraints = false;
+    if (req.path_constraints.position_constraints.size() > 1 || req.path_constraints.orientation_constraints.size() > 1)
+      stacked_constraints = true;
+    for (const auto& constraint : req.goal_constraints)
+    {
+      if (constraint.position_constraints.size() > 1 || constraint.orientation_constraints.size() > 1)
+        stacked_constraints = true;
+    }
+    if (stacked_constraints)
+      ROS_WARN("More than one constraint is set. If your move_group does not have multiple end effectors/arms, this is "
+               "unusual. Are you using a move_group_interface and forgetting to call clearPoseTargets() or "
+               "equivalent?");
+  }
+
+  return solved && valid;
+}
+
+bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene_monitor::PlanningSceneMonitorPtr& planning_scene_monitor,
+                                                       const planning_interface::MotionPlanRequest& req,
+                                                       planning_interface::MotionPlanResponse& res,
+                                                       std::vector<std::size_t>& adapter_added_state_index) const
+{
+  // broadcast the request we are about to work on, if needed
+  if (publish_received_requests_)
+    received_request_publisher_.publish(req);
+  adapter_added_state_index.clear();
+
+  if (!planner_instance_)
+  {
+    ROS_ERROR("No planning plugin loaded. Cannot plan.");
+    return false;
+  }
+
+  bool solved = false;
+  try
+  {
+    if (adapter_chain_)
+    {
+      solved = adapter_chain_->adaptAndPlan(planner_instance_, planning_scene_monitor, req, res, adapter_added_state_index);
+      if (!adapter_added_state_index.empty())
+      {
+        std::stringstream ss;
+        for (std::size_t added_index : adapter_added_state_index)
+          ss << added_index << " ";
+        ROS_INFO("Planning adapters have added states at index positions: [ %s]", ss.str().c_str());
+      }
+    }
+    else
+    {
+      planning_interface::PlanningContextPtr context =
+          planner_instance_->getPlanningContext(planning_scene_monitor->getPlanningScene(), req, res.error_code_);
+      solved = context ? context->solve(res) : false;
+    }
+  }
+  catch (std::exception& ex)
+  {
+    ROS_ERROR("Exception caught: '%s'", ex.what());
+    return false;
+  }
+  bool valid = true;
+
+  if (solved && res.trajectory_)
+  {
+    std::size_t state_count = res.trajectory_->getWayPointCount();
+    ROS_DEBUG_STREAM("Motion planner reported a solution path with " << state_count << " states");
+    if (check_solution_paths_)
+    {
+      visualization_msgs::MarkerArray arr;
+      visualization_msgs::Marker m;
+      m.action = visualization_msgs::Marker::DELETEALL;
+      arr.markers.push_back(m);
+
+      std::vector<std::size_t> index;
+      if (!planning_scene_monitor->getPlanningScene()->isPathValid(*res.trajectory_, req.path_constraints, req.group_name, false, &index))
+      {
+        // check to see if there is any problem with the states that are found to be invalid
+        // they are considered ok if they were added by a planning request adapter
+        bool problem = false;
+        for (std::size_t i = 0; i < index.size() && !problem; ++i)
+        {
+          bool found = false;
+          for (std::size_t added_index : adapter_added_state_index)
+            if (index[i] == added_index)
+            {
+              found = true;
+              break;
+            }
+          if (!found)
+            problem = true;
+        }
+        if (problem)
+        {
+          if (index.size() == 1 && index[0] == 0)  // ignore cases when the robot starts at invalid location
+            ROS_DEBUG("It appears the robot is starting at an invalid state, but that is ok.");
+          else
+          {
+            valid = false;
+            res.error_code_.val = moveit_msgs::MoveItErrorCodes::INVALID_MOTION_PLAN;
+
+            // display error messages
+            std::stringstream ss;
+            for (std::size_t it : index)
+              ss << it << " ";
+            ROS_ERROR_STREAM("Computed path is not valid. Invalid states at index locations: [ "
+                             << ss.str() << "] out of " << state_count
+                             << ". Explanations follow in command line. Contacts are published on "
+                             << private_nh_.resolveName(MOTION_CONTACTS_TOPIC));
+
+            // call validity checks in verbose mode for the problematic states
+            for (std::size_t it : index)
+            {
+              // check validity with verbose on
+              const moveit::core::RobotState& robot_state = res.trajectory_->getWayPoint(it);
+              planning_scene_monitor->getPlanningScene()->isStateValid(robot_state, req.path_constraints, req.group_name, true);
+
+              // compute the contacts if any
+              collision_detection::CollisionRequest c_req;
+              collision_detection::CollisionResult c_res;
+              c_req.contacts = true;
+              c_req.max_contacts = 10;
+              c_req.max_contacts_per_pair = 3;
+              c_req.verbose = false;
+              planning_scene_monitor->getPlanningScene()->checkCollision(c_req, c_res, robot_state);
+              if (c_res.contact_count > 0)
+              {
+                visualization_msgs::MarkerArray arr_i;
+                collision_detection::getCollisionMarkersFromContacts(arr_i, planning_scene_monitor->getPlanningScene()->getPlanningFrame(),
                                                                      c_res.contacts);
                 arr.markers.insert(arr.markers.end(), arr_i.markers.begin(), arr_i.markers.end());
               }

@@ -194,7 +194,13 @@ void MoveGroupMoveAction::executeMoveCallbackPlanOnly(const moveit_msgs::MoveGro
 
   try
   {
-    planning_pipeline->generatePlan(the_scene, goal->request, res);
+#ifdef PLANNING_SCENE_MONITOR
+      ROS_INFO_NAMED(getName(), "Generating plan and sending planning_scene_monitor");
+      planning_pipeline->generatePlan(context_->planning_scene_monitor_, goal->request, res);
+      ROS_INFO_NAMED(getName(), "Done generating plan with planning_scene_monitor");
+#else
+      planning_pipeline->generatePlan(the_scene, goal->request, res);
+#endif
   }
   catch (std::exception& ex)
   {

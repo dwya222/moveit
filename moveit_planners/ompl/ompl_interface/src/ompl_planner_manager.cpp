@@ -37,6 +37,7 @@
 #include <moveit/ompl_interface/ompl_interface.h>
 #include <moveit/planning_interface/planning_interface.h>
 #include <moveit/planning_scene/planning_scene.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit/robot_state/conversions.h>
 #include <moveit/profiler/profiler.h>
 #include <class_loader/class_loader.hpp>
@@ -49,6 +50,7 @@
 
 #include <ompl/util/Console.h>
 
+#include <boost/any.hpp>
 #include <thread>
 #include <memory>
 
@@ -150,6 +152,15 @@ public:
                                                             moveit_msgs::MoveItErrorCodes& error_code) const override
   {
     return ompl_interface_->getPlanningContext(planning_scene, req, error_code);
+  }
+
+  planning_interface::PlanningContextPtr getPlanningContext(int specifier,
+                                                            boost::any planning_scene_monitor,
+                                                            const planning_interface::MotionPlanRequest& req,
+                                                            moveit_msgs::MoveItErrorCodes& error_code) const override
+  {
+    ROS_INFO_NAMED("DWY", "In ompl_planner_manager getPlanningContext");
+    return ompl_interface_->getPlanningContext(boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor), req, error_code);
   }
 
 private:

@@ -41,6 +41,7 @@
 #include <moveit/planning_interface/planning_response.h>
 #include <string>
 #include <map>
+#include <boost/any.hpp>
 
 namespace planning_scene
 {
@@ -183,8 +184,21 @@ public:
                                                 const MotionPlanRequest& req,
                                                 moveit_msgs::MoveItErrorCodes& error_code) const = 0;
 
+  virtual PlanningContextPtr getPlanningContext(int specifier,
+                                                boost::any planning_scene_monitor,
+                                                const MotionPlanRequest& req,
+                                                moveit_msgs::MoveItErrorCodes& error_code) const = 0;
+  // This might break some other child classes that don't have a method for taking in specifier and monitor
+  /* { */
+  /*   return new PlanningContextPtr; */
+  /* }; */
+
   /// \brief Calls the function above but ignores the error_code
   PlanningContextPtr getPlanningContext(const planning_scene::PlanningSceneConstPtr& planning_scene,
+                                        const MotionPlanRequest& req) const;
+
+  PlanningContextPtr getPlanningContext(int specifier,
+                                        boost::any planning_scene_monitor,
                                         const MotionPlanRequest& req) const;
 
   /// \brief Determine whether this plugin instance is able to represent this planning request

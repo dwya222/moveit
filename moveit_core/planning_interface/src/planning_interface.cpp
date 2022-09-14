@@ -108,6 +108,14 @@ PlanningContextPtr PlannerManager::getPlanningContext(const planning_scene::Plan
   return getPlanningContext(planning_scene, req, dummy);
 }
 
+PlanningContextPtr PlannerManager::getPlanningContext(int specifier,
+                                                      boost::any planning_scene_monitor,
+                                                      const MotionPlanRequest& req) const
+{
+  moveit_msgs::MoveItErrorCodes dummy;
+  return getPlanningContext(specifier, planning_scene_monitor, req, dummy);
+}
+
 void PlannerManager::getPlanningAlgorithms(std::vector<std::string>& algs) const
 {
   // nothing by default

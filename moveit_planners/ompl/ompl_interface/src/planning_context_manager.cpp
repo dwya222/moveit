@@ -501,3 +501,98 @@ ompl_interface::ModelBasedPlanningContextPtr ompl_interface::PlanningContextMana
 
   return context;
 }
+
+ompl_interface::ModelBasedPlanningContextPtr ompl_interface::PlanningContextManager::getPlanningContext(
+    const planning_scene_monitor::PlanningSceneMonitorPtr& planning_scene_monitor, const moveit_msgs::MotionPlanRequest& req,
+    moveit_msgs::MoveItErrorCodes& error_code, const ros::NodeHandle& nh, bool use_constraints_approximation) const
+{
+  ROS_INFO_NAMED("DWY", "In planning_context_manager.cpp getPlanningContext, (set monitor here)");
+  if (req.group_name.empty())
+  {
+    ROS_ERROR_NAMED(LOGNAME, "No group specified to plan for");
+    error_code.val = moveit_msgs::MoveItErrorCodes::INVALID_GROUP_NAME;
+    return ModelBasedPlanningContextPtr();
+  }
+
+  error_code.val = moveit_msgs::MoveItErrorCodes::FAILURE;
+
+  if (!planning_scene_monitor->getPlanningScene())
+  {
+    ROS_ERROR_NAMED(LOGNAME, "No planning scene supplied as input");
+    return ModelBasedPlanningContextPtr();
+  }
+
+  // identify the correct planning configuration
+  auto pc = planner_configs_.end();
+  if (!req.planner_id.empty())
+  {
+    pc = planner_configs_.find(req.planner_id.find(req.group_name) == std::string::npos ?
+                                   req.group_name + "[" + req.planner_id + "]" :
+                                   req.planner_id);
+    if (pc == planner_configs_.end())
+      ROS_WARN_NAMED(LOGNAME,
+                     "Cannot find planning configuration for group '%s' using planner '%s'. Will use defaults instead.",
+                     req.group_name.c_str(), req.planner_id.c_str());
+  }
+
+  if (pc == planner_configs_.end())
+  {
+    pc = planner_configs_.find(req.group_name);
+    if (pc == planner_configs_.end())
+    {
+      ROS_ERROR_NAMED(LOGNAME, "Cannot find planning configuration for group '%s'", req.group_name.c_str());
+      return ModelBasedPlanningContextPtr();
+    }
+  }
+
+  // Check if sampling in JointModelStateSpace is enforced for this group by user.
+  // This is done by setting 'enforce_joint_model_state_space' to 'true' for the desired group in ompl_planning.yaml.
+  //
+  // Some planning problems like orientation path constraints are represented in PoseModelStateSpace and sampled via IK.
+  // However consecutive IK solutions are not checked for proximity at the moment and sometimes happen to be flipped,
+  // leading to invalid trajectories. This workaround lets the user prevent this problem by forcing rejection sampling
+  // in JointModelStateSpace.
+  ModelBasedStateSpaceFactoryPtr factory;
+  auto it = pc->second.config.find("enforce_joint_model_state_space");
+
+  if (it != pc->second.config.end() && boost::lexical_cast<bool>(it->second))
+    factory = getStateSpaceFactory(JointModelStateSpace::PARAMETERIZATION_TYPE);
+  else
+    factory = getStateSpaceFactory(pc->second.group, req);
+
+  ModelBasedPlanningContextPtr context = getPlanningContext(pc->second, factory);
+
+  if (context)
+  {
+    context->clear();
+
+    moveit::core::RobotStatePtr start_state = planning_scene_monitor->getPlanningScene()->getCurrentStateUpdated(req.start_state);
+
+    // Setup the context
+    context->setPlanningScene(planning_scene_monitor->getPlanningScene());
+    context->setPlanningSceneMonitor(planning_scene_monitor);
+    context->setMotionPlanRequest(req);
+    context->setCompleteInitialState(*start_state);
+
+    context->setPlanningVolume(req.workspace_parameters);
+    if (!context->setPathConstraints(req.path_constraints, &error_code))
+      return ModelBasedPlanningContextPtr();
+
+    if (!context->setGoalConstraints(req.goal_constraints, req.path_constraints, &error_code))
+      return ModelBasedPlanningContextPtr();
+
+    try
+    {
+      context->configure(nh, use_constraints_approximation);
+      ROS_DEBUG_NAMED(LOGNAME, "%s: New planning context is set.", context->getName().c_str());
+      error_code.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
+    }
+    catch (ompl::Exception& ex)
+    {
+      ROS_ERROR_NAMED(LOGNAME, "OMPL encountered an error: %s", ex.what());
+      context.reset();
+    }
+  }
+
+  return context;
+}

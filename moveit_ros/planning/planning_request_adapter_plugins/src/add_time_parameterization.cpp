@@ -64,7 +64,30 @@ public:
     bool result = planner(planning_scene, req, res);
     if (result && res.trajectory_)
     {
+      ROS_INFO("yes res.trajectory_");
       ROS_DEBUG("Running '%s'", getDescription().c_str());
+      if (!time_param_.computeTimeStamps(*res.trajectory_, req.max_velocity_scaling_factor,
+                                         req.max_acceleration_scaling_factor))
+      {
+        ROS_ERROR("Time parametrization for the solution path failed.");
+        result = false;
+      }
+    }
+
+    return result;
+  }
+
+  bool adaptAndPlan(const PlannerFnMon& planner, boost::any planning_scene_monitor,
+                    const planning_interface::MotionPlanRequest& req, planning_interface::MotionPlanResponse& res,
+                    std::vector<std::size_t>& /*added_path_index*/) const override
+  {
+    ROS_INFO("In adapter.adaptAndPlan, about to call plannerFnMon(planning_scene_monitor...)");
+    bool result = planner(planning_scene_monitor, req, res);
+    ROS_INFO_STREAM("In adapter.adaptAndPlan, successfully called plannerFnMon(planning_scene_monitor...) with result: " << result);
+    if (result && res.trajectory_)
+    {
+      ROS_DEBUG("Running '%s'", getDescription().c_str());
+      ROS_INFO("Running '%s'", getDescription().c_str());
       if (!time_param_.computeTimeStamps(*res.trajectory_, req.max_velocity_scaling_factor,
                                          req.max_acceleration_scaling_factor))
       {
