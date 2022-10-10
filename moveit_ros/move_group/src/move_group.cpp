@@ -302,6 +302,27 @@ int main(int argc, char** argv)
     mge.status();
 
     ros::waitForShutdown();
+    /* moveit::core::RobotStatePtr current_state = nullptr; */
+    /* moveit_cpp->getCurrentState(current_state, 3.0); */
+    /* moveit_cpp->getPlanningSceneMonitor()->startSceneMonitor(); */
+    /* moveit_cpp->getPlanningSceneMonitor()->startWorldGeometryMonitor(); */
+    /* moveit_cpp->getPlanningSceneMonitor()->startStateMonitor(); */
+    /* /1* planning_scene_monitor->startSceneMonitor(); *1/ */
+    /* /1* planning_scene_monitor->startWorldGeometryMonitor(); *1/ */
+    /* /1* planning_scene_monitor->startStateMonitor(); *1/ */
+    /* /1* planning_scene_monitor->stopSceneMonitor(); *1/ */
+    /* /1* planning_scene_monitor->stopWorldGeometryMonitor(); *1/ */
+    /* /1* planning_scene_monitor->stopStateMonitor(); *1/ */
+
+    /* while (ros::ok()) */
+    /* { */
+    /*   collision_detection::CollisionRequest req; */
+    /*   collision_detection::CollisionResult res; */
+    /*   moveit_cpp->getPlanningSceneMonitor()->getPlanningScene()->checkCollision(req, res, *current_state); */
+    /*   /1* planning_scene_monitor->getPlanningScene()->checkCollision(req, res, *current_state); *1/ */
+    /*   ROS_INFO_STREAM_THROTTLE(0.5, "move_group.cpp collision: " << res.collision); */
+    /*   /1* ros::spinOnce(); *1/ */
+    /* } */
   }
   else
     ROS_ERROR("Planning scene not configured");

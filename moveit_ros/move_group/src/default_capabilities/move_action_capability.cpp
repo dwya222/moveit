@@ -170,11 +170,17 @@ void MoveGroupMoveAction::executeMoveCallbackPlanOnly(const moveit_msgs::MoveGro
   ROS_INFO_NAMED(getName(), "Planning request received for MoveGroup action. Forwarding to planning pipeline.");
 
   // lock the scene so that it does not modify the world representation while diff() is called
-  planning_scene_monitor::LockedPlanningSceneRO lscene(context_->planning_scene_monitor_);
-  const planning_scene::PlanningSceneConstPtr& the_scene =
-      (moveit::core::isEmpty(goal->planning_options.planning_scene_diff)) ?
-          static_cast<const planning_scene::PlanningSceneConstPtr&>(lscene) :
-          lscene->diff(goal->planning_options.planning_scene_diff);
+  /* planning_scene_monitor::LockedPlanningSceneRO lscene(context_->planning_scene_monitor_); */
+  /* const planning_scene::PlanningSceneConstPtr& the_scene = */
+  /*     (moveit::core::isEmpty(goal->planning_options.planning_scene_diff)) ? */
+  /*         static_cast<const planning_scene::PlanningSceneConstPtr&>(lscene) : */
+  /*         lscene->diff(goal->planning_options.planning_scene_diff); */
+  if (moveit::core::isEmpty(goal->planning_options.planning_scene_diff)) {
+    ROS_INFO_NAMED(getName(), "Planning scene diff is empty");
+  } else {
+    ROS_WARN_NAMED(getName(), "Planning scene diff NOT empty");
+  }
+  const planning_scene::PlanningSceneConstPtr& the_scene = context_->planning_scene_monitor_->getPlanningScene();
   planning_interface::MotionPlanResponse res;
 
   if (preempt_requested_)

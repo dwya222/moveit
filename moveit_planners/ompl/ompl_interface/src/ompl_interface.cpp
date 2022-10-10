@@ -109,7 +109,7 @@ ompl_interface::OMPLInterface::getPlanningContext(const planning_scene_monitor::
                                                   const planning_interface::MotionPlanRequest& req) const
 {
   moveit_msgs::MoveItErrorCodes dummy;
-  return getPlanningContext(planning_scene_monitor->getPlanningScene(), req, dummy);
+  return getPlanningContext(planning_scene_monitor, req, dummy);
 }
 
 ompl_interface::ModelBasedPlanningContextPtr
@@ -131,7 +131,7 @@ ompl_interface::OMPLInterface::getPlanningContext(const planning_scene_monitor::
 {
   ROS_INFO_NAMED("DWY", "In ompl_interface.cpp getPlanningContext. About to call context_manager.getPlanningContext");
   ModelBasedPlanningContextPtr ctx =
-      context_manager_.getPlanningContext(planning_scene_monitor->getPlanningScene(), req, error_code, nh_, use_constraints_approximations_);
+      context_manager_.getPlanningContext(planning_scene_monitor, req, error_code, nh_, use_constraints_approximations_);
   if (ctx)
     configureContext(ctx);
   return ctx;

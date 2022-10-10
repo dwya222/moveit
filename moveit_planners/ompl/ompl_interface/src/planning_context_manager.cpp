@@ -506,7 +506,6 @@ ompl_interface::ModelBasedPlanningContextPtr ompl_interface::PlanningContextMana
     const planning_scene_monitor::PlanningSceneMonitorPtr& planning_scene_monitor, const moveit_msgs::MotionPlanRequest& req,
     moveit_msgs::MoveItErrorCodes& error_code, const ros::NodeHandle& nh, bool use_constraints_approximation) const
 {
-  ROS_INFO_NAMED("DWY", "In planning_context_manager.cpp getPlanningContext, (set monitor here)");
   if (req.group_name.empty())
   {
     ROS_ERROR_NAMED(LOGNAME, "No group specified to plan for");
@@ -570,7 +569,12 @@ ompl_interface::ModelBasedPlanningContextPtr ompl_interface::PlanningContextMana
 
     // Setup the context
     context->setPlanningScene(planning_scene_monitor->getPlanningScene());
+    ROS_INFO("DWY3: about to set planning_scene_monitor");
     context->setPlanningSceneMonitor(planning_scene_monitor);
+    planning_scene_monitor->startSceneMonitor();
+    planning_scene_monitor->startWorldGeometryMonitor();
+    planning_scene_monitor->startStateMonitor();
+    /* context->testPlanningSceneMonitor(); */
     context->setMotionPlanRequest(req);
     context->setCompleteInitialState(*start_state);
 

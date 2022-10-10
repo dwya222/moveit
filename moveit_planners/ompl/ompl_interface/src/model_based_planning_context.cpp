@@ -208,6 +208,19 @@ void ompl_interface::ModelBasedPlanningContext::setPlanningSceneMonitor(const pl
   planning_scene_monitor_ = planning_scene_monitor;
 }
 
+void ompl_interface::ModelBasedPlanningContext::testPlanningSceneMonitor() const
+{
+  while (ros::ok())
+  {
+    ROS_INFO_THROTTLE_NAMED(0.5, "DWY", "DWY3: attempt to acquire planningScene from monitior");
+  }
+}
+
+const planning_scene_monitor::PlanningSceneMonitorPtr& ompl_interface::ModelBasedPlanningContext::getPlanningSceneMonitor() const
+{
+  return planning_scene_monitor_;
+}
+
 ompl::base::StateSamplerPtr
 ompl_interface::ModelBasedPlanningContext::allocPathConstrainedSampler(const ompl::base::StateSpace* state_space) const
 {

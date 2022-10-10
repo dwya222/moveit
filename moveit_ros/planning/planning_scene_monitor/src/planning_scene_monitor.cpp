@@ -560,6 +560,7 @@ void PlanningSceneMonitor::clearOctomap()
 
 bool PlanningSceneMonitor::newPlanningSceneMessage(const moveit_msgs::PlanningScene& scene)
 {
+  ROS_INFO_NAMED("DWY", "DWY: in newPlanningSceneMessage");
   if (!scene_)
     return false;
 
