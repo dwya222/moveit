@@ -52,6 +52,7 @@
 #include <ompl/geometric/planners/kpiece/BKPIECE1.h>
 #include <ompl/geometric/planners/kpiece/LBKPIECE1.h>
 #include <ompl/geometric/planners/rrt/RRTstar.h>
+#include <ompl/geometric/planners/rrt/RTRRTstar.h>
 #include <ompl/geometric/planners/prm/PRM.h>
 #include <ompl/geometric/planners/prm/PRMstar.h>
 #include <ompl/geometric/planners/fmt/FMT.h>
@@ -285,6 +286,7 @@ void ompl_interface::PlanningContextManager::registerDefaultPlanners()
   registerPlannerAllocatorHelper<og::RRT>("geometric::RRT");
   registerPlannerAllocatorHelper<og::RRTConnect>("geometric::RRTConnect");
   registerPlannerAllocatorHelper<og::RRTstar>("geometric::RRTstar");
+  registerPlannerAllocatorHelper<og::RTRRTstar>("geometric::RTRRTstar");
   registerPlannerAllocatorHelper<og::SBL>("geometric::SBL");
   registerPlannerAllocatorHelper<og::SPARS>("geometric::SPARS");
   registerPlannerAllocatorHelper<og::SPARStwo>("geometric::SPARStwo");
@@ -569,7 +571,6 @@ ompl_interface::ModelBasedPlanningContextPtr ompl_interface::PlanningContextMana
 
     // Setup the context
     context->setPlanningScene(planning_scene_monitor->getPlanningScene());
-    ROS_INFO("DWY3: about to set planning_scene_monitor");
     context->setPlanningSceneMonitor(planning_scene_monitor);
     planning_scene_monitor->startSceneMonitor();
     planning_scene_monitor->startWorldGeometryMonitor();

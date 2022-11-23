@@ -208,14 +208,6 @@ void ompl_interface::ModelBasedPlanningContext::setPlanningSceneMonitor(const pl
   planning_scene_monitor_ = planning_scene_monitor;
 }
 
-void ompl_interface::ModelBasedPlanningContext::testPlanningSceneMonitor() const
-{
-  while (ros::ok())
-  {
-    ROS_INFO_THROTTLE_NAMED(0.5, "DWY", "DWY3: attempt to acquire planningScene from monitior");
-  }
-}
-
 const planning_scene_monitor::PlanningSceneMonitorPtr& ompl_interface::ModelBasedPlanningContext::getPlanningSceneMonitor() const
 {
   return planning_scene_monitor_;
@@ -674,8 +666,7 @@ void ompl_interface::ModelBasedPlanningContext::stopSampling()
   bool gls = ompl_simple_setup_->getGoal()->hasType(ob::GOAL_LAZY_SAMPLES);
   if (gls)
     static_cast<ob::GoalLazySamples*>(ompl_simple_setup_->getGoal().get())->stopSampling();
-  else
-    // we know this is a GoalSampleableMux by elimination
+  else if (dynamic_cast<GoalSampleableRegionMux*>(ompl_simple_setup_->getGoal().get()))
     static_cast<GoalSampleableRegionMux*>(ompl_simple_setup_->getGoal().get())->stopSampling();
 }
 

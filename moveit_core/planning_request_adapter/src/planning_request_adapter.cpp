@@ -47,7 +47,6 @@ bool callPlannerInterfaceSolve(const planning_interface::PlannerManager& planner
                                const planning_interface::MotionPlanRequest& req,
                                planning_interface::MotionPlanResponse& res)
 {
-  ROS_INFO_NAMED("DWY", "DWY: in callPlannerInterfaceSolve about to call getPlanningContext");
   planning_interface::PlanningContextPtr context = planner.getPlanningContext(planning_scene, req, res.error_code_);
   if (context)
     return context->solve(res);
@@ -60,7 +59,6 @@ bool callPlannerInterfaceSolve(const planning_interface::PlannerManager& planner
                                const planning_interface::MotionPlanRequest& req,
                                planning_interface::MotionPlanResponse& res)
 {
-  ROS_INFO_NAMED("DWY", "DWY: in callPlannerInterfaceSolve about to call getPlanningContext WITH MONITOR");
   planning_interface::PlanningContextPtr context = planner.getPlanningContext(1, planning_scene_monitor, req, res.error_code_);
   /* planner.getPlanningContext(1, planning_scene_monitor, req, res.error_code_); */
   /* return true; */
@@ -96,7 +94,6 @@ bool callAdapter(const PlanningRequestAdapter& adapter, const PlanningRequestAda
 {
   try
   {
-    ROS_INFO_NAMED("DWY", "About to call adapter.adaptAndPlan. Adapter description: '%s'", adapter.getDescription().c_str());
     return adapter.adaptAndPlan(planner, planning_scene_monitor, req, res, added_path_index);
   }
   catch (std::exception& ex)
@@ -233,7 +230,6 @@ bool PlanningRequestAdapterChain::adaptAndPlan(const planning_interface::Planner
                                                planning_interface::MotionPlanResponse& res,
                                                std::vector<std::size_t>& added_path_index) const
 {
-  ROS_INFO_NAMED("DWY", "In final adaptAndPlan method");
   // if there are no adapters, run the planner directly
   if (adapters_.empty())
   {

@@ -66,17 +66,15 @@ ompl_interface::StateValidityChecker::StateValidityChecker(const ModelBasedPlann
 
   collision_request_with_distance_verbose_ = collision_request_with_distance_;
   collision_request_with_distance_verbose_.verbose = true;
-  /* moveit::core::RobotState current_state = planning_context_->getCompleteInitialRobotState(); */
-  planning_context_->getPlanningSceneMonitor()->startSceneMonitor();
-  planning_context_->getPlanningSceneMonitor()->startWorldGeometryMonitor();
-  planning_context_->getPlanningSceneMonitor()->startStateMonitor();
-  /* while (ros::ok()) */
-  /* { */
-  /*   collision_detection::CollisionResult res; */
-  /*   planning_context_->getPlanningSceneMonitor()->getPlanningScene()->checkCollision(collision_request_simple_, res, current_state); */
-  /*   ROS_INFO_STREAM_THROTTLE(0.5, "state_validity_checker.cpp collision: " << res.collision); */
-  /* } */
-
+  if (planning_context_->getPlanningSceneMonitor())
+  {
+    monitor_ = true;
+    planning_context_->getPlanningSceneMonitor()->startSceneMonitor();
+    planning_context_->getPlanningSceneMonitor()->startWorldGeometryMonitor();
+    planning_context_->getPlanningSceneMonitor()->startStateMonitor();
+  }
+  else
+    monitor_ = false;
 }
 
 void ompl_interface::StateValidityChecker::setVerbose(bool flag)
@@ -110,23 +108,38 @@ bool ompl_interface::StateValidityChecker::isValid(const ompl::base::State* stat
   }
 
   // check feasibility
-  /* planning_scene_monitor::LockedPlanningSceneRO lscene(planning_context_->getPlanningSceneMonitor()); */
-  if (!planning_context_->getPlanningSceneMonitor()->getPlanningScene()->isStateFeasible(*robot_state, verbose))
+  if (monitor_)
   {
-    const_cast<ob::State*>(state)->as<ModelBasedStateSpace::StateType>()->markInvalid();
-    return false;
+    planning_context_->getPlanningSceneMonitor()->lockSceneRead();
+    if (!planning_context_->getPlanningSceneMonitor()->getPlanningScene()->isStateFeasible(*robot_state, verbose))
+    {
+      const_cast<ob::State*>(state)->as<ModelBasedStateSpace::StateType>()->markInvalid();
+      return false;
+    }
+  }
+  else
+  {
+    if (!planning_context_->getPlanningScene()->isStateFeasible(*robot_state, verbose))
+    {
+      const_cast<ob::State*>(state)->as<ModelBasedStateSpace::StateType>()->markInvalid();
+      return false;
+    }
   }
 
   // check collision avoidance
   collision_detection::CollisionResult res;
-  /* moveit::core::RobotState current_state = planning_context_->getCompleteInitialRobotState(); */
-  /* while (ros::ok()) */
-  /* { */
-  /*   planning_context_->getPlanningSceneMonitor()->getPlanningScene()->checkCollision(collision_request_simple_, res, current_state); */
-  /*   ROS_INFO_STREAM_THROTTLE(0.5, "state_validity_checker.cpp isValid collision: " << res.collision); */
-  /* } */
-  planning_context_->getPlanningSceneMonitor()->getPlanningScene()->checkCollision(
-      verbose ? collision_request_simple_verbose_ : collision_request_simple_, res, *robot_state);
+  if (monitor_)
+  {
+    planning_context_->getPlanningSceneMonitor()->getPlanningScene()->checkCollision(
+        verbose ? collision_request_simple_verbose_ : collision_request_simple_, res, *robot_state);
+    planning_context_->getPlanningSceneMonitor()->unlockSceneRead();
+  }
+  else
+  {
+    planning_context_->getPlanningScene()->checkCollision(
+        verbose ? collision_request_simple_verbose_ : collision_request_simple_, res, *robot_state);
+
+  }
   if (!res.collision)
   {
     const_cast<ob::State*>(state)->as<ModelBasedStateSpace::StateType>()->markValid();

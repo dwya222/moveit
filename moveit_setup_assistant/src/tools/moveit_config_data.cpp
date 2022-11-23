@@ -719,6 +719,16 @@ std::vector<OMPLPlannerDescription> MoveItConfigData::getOMPLPlanners() const
                         "default 1");
   planner_des.push_back(rr_tstar);
 
+  OMPLPlannerDescription rtrr_tstar("RTRRTstar", "geometric");
+  rtrr_tstar.addParameter("range", "0.0",
+                          "Max motion added to tree. ==> maxDistance_ default: 0.0, if 0.0, set on "
+                          "setup()");
+  rtrr_tstar.addParameter("goal_bias", "0.05", "When close to goal select goal, with this probability? default: 0.05");
+  rtrr_tstar.addParameter("delay_collision_checking", "1",
+                          "Stop collision checking as soon as C-free parent found. "
+                          "default 1");
+  planner_des.push_back(rtrr_tstar);
+
   OMPLPlannerDescription trrt("TRRT", "geometric");
   trrt.addParameter("range", "0.0", "Max motion added to tree. ==> maxDistance_ default: 0.0, if 0.0, set on setup()");
   trrt.addParameter("goal_bias", "0.05", "When close to goal select goal, with this probability? default: 0.05");

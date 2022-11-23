@@ -332,8 +332,6 @@ public:
 
   void setPlanningSceneMonitor(const planning_scene_monitor::PlanningSceneMonitorPtr& planning_scene_monitor);
 
-  void testPlanningSceneMonitor() const;
-
   const planning_scene_monitor::PlanningSceneMonitorPtr& getPlanningSceneMonitor() const;
 
 protected:

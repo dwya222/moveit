@@ -159,7 +159,6 @@ public:
                                                             const planning_interface::MotionPlanRequest& req,
                                                             moveit_msgs::MoveItErrorCodes& error_code) const override
   {
-    ROS_INFO_NAMED("DWY", "In ompl_planner_manager getPlanningContext");
     return ompl_interface_->getPlanningContext(boost::any_cast<const planning_scene_monitor::PlanningSceneMonitorPtr&>(planning_scene_monitor), req, error_code);
   }
 

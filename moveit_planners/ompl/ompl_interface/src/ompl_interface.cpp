@@ -129,7 +129,6 @@ ompl_interface::OMPLInterface::getPlanningContext(const planning_scene_monitor::
                                                   const planning_interface::MotionPlanRequest& req,
                                                   moveit_msgs::MoveItErrorCodes& error_code) const
 {
-  ROS_INFO_NAMED("DWY", "In ompl_interface.cpp getPlanningContext. About to call context_manager.getPlanningContext");
   ModelBasedPlanningContextPtr ctx =
       context_manager_.getPlanningContext(planning_scene_monitor, req, error_code, nh_, use_constraints_approximations_);
   if (ctx)

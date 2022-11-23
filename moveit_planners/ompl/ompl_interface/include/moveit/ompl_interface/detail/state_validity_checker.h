@@ -39,6 +39,7 @@
 #include <moveit/ompl_interface/detail/threadsafe_state_storage.h>
 #include <moveit/collision_detection/collision_common.h>
 #include <ompl/base/StateValidityChecker.h>
+#include <moveit/planning_interface/planning_interface.h>
 
 namespace ompl_interface
 {
@@ -75,6 +76,8 @@ public:
 
   void setVerbose(bool flag);
 
+  planning_scene::PlanningScenePtr planning_scene_;
+
 protected:
   const ModelBasedPlanningContext* planning_context_;
   std::string group_name_;
@@ -86,5 +89,6 @@ protected:
 
   collision_detection::CollisionRequest collision_request_with_cost_;
   bool verbose_;
+  bool monitor_;
 };
 }  // namespace ompl_interface
