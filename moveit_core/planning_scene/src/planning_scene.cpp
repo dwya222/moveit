@@ -1711,7 +1711,7 @@ void PlanningScene::poseMsgToEigen(const geometry_msgs::Pose& msg, Eigen::Isomet
   Eigen::Quaterniond quaternion(msg.orientation.w, msg.orientation.x, msg.orientation.y, msg.orientation.z);
   if ((quaternion.x() == 0) && (quaternion.y() == 0) && (quaternion.z() == 0) && (quaternion.w() == 0))
   {
-    ROS_WARN_NAMED(LOGNAME, "Empty quaternion found in pose message. Setting to neutral orientation.");
+    /* ROS_WARN_NAMED(LOGNAME, "Empty quaternion found in pose message. Setting to neutral orientation."); */
     quaternion.setIdentity();
   }
   else

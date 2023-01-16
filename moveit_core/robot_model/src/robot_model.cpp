@@ -1027,14 +1027,14 @@ LinkModel* RobotModel::constructLinkModel(const urdf::Link* urdf_link)
         warn_about_missing_collision = true;
     }
   }
-  if (warn_about_missing_collision)
-  {
-    ROS_WARN_STREAM_NAMED(LOGNAME + ".empty_collision_geometry",
-                          "Link " << urdf_link->name
-                                  << " has visual geometry but no collision geometry. "
-                                     "Collision geometry will be left empty. "
-                                     "Fix your URDF file by explicitly specifying collision geometry.");
-  }
+  /* if (warn_about_missing_collision) */
+  /* { */
+  /*   ROS_WARN_STREAM_NAMED(LOGNAME + ".empty_collision_geometry", */
+  /*                         "Link " << urdf_link->name */
+  /*                                 << " has visual geometry but no collision geometry. " */
+  /*                                    "Collision geometry will be left empty. " */
+  /*                                    "Fix your URDF file by explicitly specifying collision geometry."); */
+  /* } */
 
   new_link_model->setGeometry(shapes, poses);
 

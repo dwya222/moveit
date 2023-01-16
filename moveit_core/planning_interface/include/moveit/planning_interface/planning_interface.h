@@ -187,7 +187,7 @@ public:
   virtual PlanningContextPtr getPlanningContext(int specifier,
                                                 boost::any planning_scene_monitor,
                                                 const MotionPlanRequest& req,
-                                                moveit_msgs::MoveItErrorCodes& error_code) const = 0;
+                                                moveit_msgs::MoveItErrorCodes& error_code) const {return NULL;};
   // This might break some other child classes that don't have a method for taking in specifier and monitor
   /* { */
   /*   return new PlanningContextPtr; */
