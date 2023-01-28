@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
   tf2
   dynamic_reconfigure
+  robo_demo_msgs
 )
 moveit_build_options()
 
