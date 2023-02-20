@@ -64,6 +64,7 @@ struct ServoParameters
   double hard_stop_singularity_threshold;
   double low_pass_filter_coeff;
   double publish_period;
+  double time_from_start;
   double incoming_command_timeout;
   double joint_limit_margin;
   int num_outgoing_halt_msgs_to_publish;

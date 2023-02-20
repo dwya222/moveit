@@ -95,6 +95,7 @@ bool Servo::readParameters()
   ros::NodeHandle nh = parameter_ns.empty() ? nh_ : ros::NodeHandle(nh_, parameter_ns);
 
   error += !rosparam_shortcuts::get(LOGNAME, nh, "publish_period", parameters_.publish_period);
+  error += !rosparam_shortcuts::get(LOGNAME, nh, "time_from_start", parameters_.time_from_start);
   error += !rosparam_shortcuts::get(LOGNAME, nh, "collision_check_rate", parameters_.collision_check_rate);
   error += !rosparam_shortcuts::get(LOGNAME, nh, "num_outgoing_halt_msgs_to_publish",
                                     parameters_.num_outgoing_halt_msgs_to_publish);

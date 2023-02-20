@@ -137,7 +137,7 @@ int main(int argc, char** argv)
 
   // Run the pose tracking in a new thread
   std::thread move_to_pose_thread(
-      [&tracker, &lin_tol, &rot_tol] { tracker.moveToPose(lin_tol, rot_tol, 0.1 /* target pose timeout */); });
+      [&tracker, &lin_tol, &rot_tol] { tracker.moveToPose(lin_tol, rot_tol, 1.0 /* target pose timeout */); });
 
   ros::Rate loop_rate(50);
   for (size_t i = 0; i < 500; ++i)

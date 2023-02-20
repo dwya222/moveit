@@ -173,11 +173,12 @@ void ServoCalcs::start()
   initial_joint_trajectory->header.frame_id = parameters_.planning_frame;
   initial_joint_trajectory->joint_names = internal_joint_state_.name;
   trajectory_msgs::JointTrajectoryPoint point;
-  point.time_from_start = ros::Duration(parameters_.publish_period);
+  point.time_from_start = ros::Duration(parameters_.time_from_start);
 
   if (parameters_.publish_joint_positions)
     planning_scene_monitor_->getStateMonitor()->getCurrentState()->copyJointGroupPositions(joint_model_group_,
                                                                                            point.positions);
+  ROS_WARN_STREAM("PUBLISH_JOINT_VELOCITIES: " << parameters_.publish_joint_velocities);
   if (parameters_.publish_joint_velocities)
   {
     std::vector<double> velocity(num_joints_);
@@ -605,7 +606,7 @@ void ServoCalcs::insertRedundantPointsIntoTrajectory(trajectory_msgs::JointTraje
   // The timestamps are shifted up one period since first point is at 1 * publish_period, not 0.
   for (int i = 1; i < count; ++i)
   {
-    point.time_from_start = ros::Duration((i + 1) * parameters_.publish_period);
+    point.time_from_start = ros::Duration((i + 1) * parameters_.time_from_start);
     joint_trajectory.points[i] = point;
   }
 }
@@ -648,7 +649,7 @@ void ServoCalcs::composeJointTrajMessage(const sensor_msgs::JointState& joint_st
   joint_trajectory.joint_names = joint_state.name;
 
   trajectory_msgs::JointTrajectoryPoint point;
-  point.time_from_start = ros::Duration(parameters_.publish_period);
+  point.time_from_start = ros::Duration(parameters_.time_from_start);
   if (parameters_.publish_joint_positions)
     point.positions = joint_state.position;
   if (parameters_.publish_joint_velocities)
@@ -797,6 +798,11 @@ bool ServoCalcs::enforcePositionLimits(sensor_msgs::JointState& joint_state)
     }
     if (!current_state_->satisfiesPositionBounds(joint, -parameters_.joint_limit_margin))
     {
+      ROS_ERROR_STREAM("Caught joint limit violation for '" << joint->getName() << "'. HALTING");
+      halting = true;
+    }
+    if (!current_state_->satisfiesPositionBounds(joint, -parameters_.joint_limit_margin))
+    {
       const std::vector<moveit_msgs::JointLimits>& limits = joint->getVariableBoundsMsg();
 
       // Joint limits are not defined for some joints. Skip them.
@@ -836,7 +842,8 @@ void ServoCalcs::suddenHalt(trajectory_msgs::JointTrajectory& joint_trajectory)
   // That point cannot have the same timestamp as the start of trajectory execution since that would mean the
   // arm has to reach the first trajectory point the moment execution begins. To prevent errors about points
   // being 0 seconds in the past, the smallest supported timestep is added as time from start to the trajectory point.
-  point.time_from_start.fromNSec(1);
+  /* point.time_from_start.fromNSec(1); */
+  point.time_from_start = ros::Duration(0.5);
 
   if (parameters_.publish_joint_positions)
     point.positions.resize(num_joints_);
