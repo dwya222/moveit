@@ -33,8 +33,8 @@ move_group_name:  panda_arm  # Often 'manipulator' or 'arm'
 planning_frame: panda_link0  # The MoveIt planning frame. Often 'base_link' or 'world'
 
 ## Other frames
-ee_frame_name: ee_april_tag  # The name of the end effector link, used to return the EE pose
-robot_link_command_frame: panda_link0  # commands must be given in the frame of a robot link. Usually either the base or end effector
+ee_frame_name: panda_hand  # The name of the end effector link, used to return the EE pose
+robot_link_command_frame: panda_link0 # commands must be given in the frame of a robot link. Usually either the base or end effector
 
 ## Stopping behaviour
 incoming_command_timeout:  0.6  # Stop servoing if X seconds elapse without a new command
@@ -45,7 +45,7 @@ num_outgoing_halt_msgs_to_publish: 4
 ## Configure handling of singularities and joint limits
 lower_singularity_threshold:  17  # Start decelerating when the condition number hits this (close to singularity)
 hard_stop_singularity_threshold: 30 # Stop when the condition number hits this
-joint_limit_margin: 0.3 # added as a buffer to joint limits [radians]. If moving quickly, make this larger.
+joint_limit_margin: 0.2 # added as a buffer to joint limits [radians]. If moving quickly, make this larger.
 
 ## Topic names
 cartesian_command_in_topic: delta_twist_cmds  # Topic for incoming Cartesian twist commands

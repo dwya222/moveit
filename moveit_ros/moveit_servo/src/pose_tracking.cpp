@@ -129,7 +129,7 @@ PoseTrackingStatusCode PoseTracking::moveToPose(const Eigen::Vector3d& positiona
     }
 
     // Compute servo command from PID controller output and send it to the Servo object, for execution
-    twist_stamped_pub_.publish(calculateTwistCommand());
+    /* twist_stamped_pub_.publish(calculateTwistCommand()); */
 
     if (!loop_rate_.sleep())
     {

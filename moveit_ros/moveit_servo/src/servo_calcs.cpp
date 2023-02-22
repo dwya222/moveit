@@ -786,6 +786,9 @@ bool ServoCalcs::enforcePositionLimits(sensor_msgs::JointState& joint_state)
 
   for (auto joint : joint_model_group_->getActiveJointModels())
   {
+    auto joint_itr = std::find(joint_state.name.begin(), joint_state.name.end(), joint->getName());
+    auto joint_idx = std::distance(joint_state.name.begin(), joint_itr);
+    ROS_INFO_STREAM(joint->getName() << " desired velocity: " <<  joint_state.velocity.at(joint_idx));
     // Halt if we're past a joint margin and joint velocity is moving even farther past
     double joint_angle = 0;
     for (std::size_t c = 0; c < original_joint_state_.name.size(); ++c)
@@ -800,6 +803,22 @@ bool ServoCalcs::enforcePositionLimits(sensor_msgs::JointState& joint_state)
     {
       ROS_ERROR_STREAM("Caught joint limit violation for '" << joint->getName() << "'. HALTING");
       halting = true;
+      const std::vector<moveit_msgs::JointLimits>& limits = joint->getVariableBoundsMsg();
+      auto joint_itr = std::find(joint_state.name.begin(), joint_state.name.end(), joint->getName());
+      auto joint_idx = std::distance(joint_state.name.begin(), joint_itr);
+
+      ROS_WARN_STREAM("Joint name: " <<  joint->getName());
+      ROS_WARN_STREAM("Joint_idx: " <<  joint_idx);
+      ROS_WARN_STREAM("Joint state velocity: " <<  joint_state.velocity.at(joint_idx));
+      ROS_WARN_STREAM("Joint state angle: " << joint_angle);
+      ROS_WARN_STREAM("Joint position limit min: " << limits[0].min_position);
+      ROS_WARN_STREAM("Joint position limit max: " << limits[0].max_position);
+      ROS_WARN_STREAM("Joint position limit margin: " << parameters_.joint_limit_margin);
+      if ((joint_state.velocity.at(joint_idx) > 0 &&
+           (joint_angle < (limits[0].min_position + parameters_.joint_limit_margin))) ||
+          (joint_state.velocity.at(joint_idx) < 0 &&
+           (joint_angle > (limits[0].max_position - parameters_.joint_limit_margin))))
+        ROS_ERROR_STREAM("Should unhalt");
     }
     if (!current_state_->satisfiesPositionBounds(joint, -parameters_.joint_limit_margin))
     {
