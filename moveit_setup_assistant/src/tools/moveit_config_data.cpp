@@ -719,7 +719,7 @@ std::vector<OMPLPlannerDescription> MoveItConfigData::getOMPLPlanners() const
                         "default 1");
   planner_des.push_back(rr_tstar);
 
-  OMPLPlannerDescription rtrr_tstar("RTRRTstar", "geometric");
+  OMPLPlannerDescription rtrr_tstar("PRTRRTstar", "geometric");
   rtrr_tstar.addParameter("range", "0.0",
                           "Max motion added to tree. ==> maxDistance_ default: 0.0, if 0.0, set on "
                           "setup()");
